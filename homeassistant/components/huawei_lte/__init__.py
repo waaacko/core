@@ -63,6 +63,7 @@ from .const import (
     KEY_DEVICE_INFORMATION,
     KEY_DEVICE_SIGNAL,
     KEY_DIALUP_MOBILE_DATASWITCH,
+    KEY_MONITORING_CHECK_NOTIFICATIONS,
     KEY_MONITORING_MONTH_STATISTICS,
     KEY_MONITORING_STATUS,
     KEY_MONITORING_TRAFFIC_STATISTICS,
@@ -195,7 +196,8 @@ class Router:
                 _LOGGER.debug("Trying to authorize again...")
                 if self.connection.enforce_authorized_connection():
                     _LOGGER.debug(
-                        "...success, %s will be updated by a future periodic run", key,
+                        "...success, %s will be updated by a future periodic run",
+                        key,
                     )
                 else:
                     _LOGGER.debug("...failed")
@@ -241,6 +243,10 @@ class Router:
         )
         self._get_data(
             KEY_MONITORING_MONTH_STATISTICS, self.client.monitoring.month_statistics
+        )
+        self._get_data(
+            KEY_MONITORING_CHECK_NOTIFICATIONS,
+            self.client.monitoring.check_notifications,
         )
         self._get_data(KEY_MONITORING_STATUS, self.client.monitoring.status)
         self._get_data(
@@ -384,9 +390,6 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry) 
     sw_version = None
     if router.data.get(KEY_DEVICE_INFORMATION):
         device_info = router.data[KEY_DEVICE_INFORMATION]
-        serial_number = device_info.get("SerialNumber")
-        if serial_number:
-            device_data["identifiers"] = {(DOMAIN, serial_number)}
         sw_version = device_info.get("SoftwareVersion")
         if device_info.get("DeviceName"):
             device_data["model"] = device_info["DeviceName"]
@@ -523,7 +526,10 @@ async def async_setup(hass: HomeAssistantType, config) -> bool:
 
     for service in ADMIN_SERVICES:
         hass.helpers.service.async_register_admin_service(
-            DOMAIN, service, service_handler, schema=SERVICE_SCHEMA,
+            DOMAIN,
+            service,
+            service_handler,
+            schema=SERVICE_SCHEMA,
         )
 
     for url, router_config in domain_config.items():

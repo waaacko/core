@@ -60,6 +60,7 @@ from .const import (
     CONF_RETAIN,
     CONF_STATE_TOPIC,
     CONF_WILL_MESSAGE,
+    DATA_MQTT_CONFIG,
     DEFAULT_BIRTH,
     DEFAULT_DISCOVERY,
     DEFAULT_PAYLOAD_AVAILABLE,
@@ -88,7 +89,6 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "mqtt"
 
 DATA_MQTT = "mqtt"
-DATA_MQTT_CONFIG = "mqtt_config"
 
 SERVICE_PUBLISH = "publish"
 SERVICE_DUMP = "dump"
@@ -134,7 +134,21 @@ CONNECTION_FAILED = "connection_failed"
 CONNECTION_FAILED_RECOVERABLE = "connection_failed_recoverable"
 
 DISCOVERY_COOLDOWN = 2
-TIMEOUT_ACK = 1
+TIMEOUT_ACK = 10
+
+PLATFORMS = [
+    "alarm_control_panel",
+    "binary_sensor",
+    "camera",
+    "climate",
+    "cover",
+    "fan",
+    "light",
+    "lock",
+    "sensor",
+    "switch",
+    "vacuum",
+]
 
 
 def validate_device_has_at_least_one_identifier(value: ConfigType) -> ConfigType:
@@ -531,7 +545,11 @@ async def async_setup_entry(hass, entry):
 
     conf = _merge_config(entry, conf)
 
-    hass.data[DATA_MQTT] = MQTT(hass, entry, conf,)
+    hass.data[DATA_MQTT] = MQTT(
+        hass,
+        entry,
+        conf,
+    )
 
     await hass.data[DATA_MQTT].async_connect()
 
@@ -620,7 +638,12 @@ class Subscription:
 class MQTT:
     """Home Assistant MQTT client."""
 
-    def __init__(self, hass: HomeAssistantType, config_entry, conf,) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistantType,
+        config_entry,
+        conf,
+    ) -> None:
         """Initialize Home Assistant MQTT client."""
         # We don't import on the top because some integrations
         # should be able to optionally rely on MQTT.
@@ -1177,7 +1200,9 @@ class MqttAvailability(Entity):
             }
 
         self._availability_sub_state = await async_subscribe_topics(
-            self.hass, self._availability_sub_state, topics,
+            self.hass,
+            self._availability_sub_state,
+            topics,
         )
 
     @callback
@@ -1256,7 +1281,9 @@ class MqttDiscoveryUpdate(Entity):
         async def discovery_callback(payload):
             """Handle discovery update."""
             _LOGGER.info(
-                "Got update for entity with hash: %s '%s'", discovery_hash, payload,
+                "Got update for entity with hash: %s '%s'",
+                discovery_hash,
+                payload,
             )
             old_payload = self._discovery_data[ATTR_DISCOVERY_PAYLOAD]
             debug_info.update_entity_discovery_data(self.hass, payload, self.entity_id)
@@ -1278,7 +1305,7 @@ class MqttDiscoveryUpdate(Entity):
             debug_info.add_entity_discovery_data(
                 self.hass, self._discovery_data, self.entity_id
             )
-            # Set in case the entity has been removed and is re-added
+            # Set in case the entity has been removed and is re-added, for example when changing entity_id
             set_discovery_hash(self.hass, discovery_hash)
             self._remove_signal = async_dispatcher_connect(
                 self.hass,
@@ -1291,7 +1318,10 @@ class MqttDiscoveryUpdate(Entity):
         if not self._removed_from_hass:
             discovery_topic = self._discovery_data[ATTR_DISCOVERY_TOPIC]
             publish(
-                self.hass, discovery_topic, "", retain=True,
+                self.hass,
+                discovery_topic,
+                "",
+                retain=True,
             )
 
     async def async_will_remove_from_hass(self) -> None:

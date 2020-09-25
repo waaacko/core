@@ -36,12 +36,12 @@ class TimePattern:
             if isinstance(value, str) and value.startswith("/"):
                 number = int(value[1:])
             else:
-                number = int(value)
+                value = number = int(value)
 
             if not (0 <= number <= self.maximum):
                 raise vol.Invalid(f"must be a value between 0 and {self.maximum}")
-        except ValueError:
-            raise vol.Invalid("invalid time_pattern value")
+        except ValueError as err:
+            raise vol.Invalid("invalid time_pattern value") from err
 
         return value
 
@@ -75,7 +75,14 @@ async def async_attach_trigger(hass, config, action, automation_info):
     def time_automation_listener(now):
         """Listen for time changes and calls action."""
         hass.async_run_job(
-            action, {"trigger": {"platform": "time_pattern", "now": now}}
+            action,
+            {
+                "trigger": {
+                    "platform": "time_pattern",
+                    "now": now,
+                    "description": "time pattern",
+                }
+            },
         )
 
     return async_track_time_change(

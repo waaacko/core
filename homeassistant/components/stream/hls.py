@@ -72,7 +72,8 @@ class HlsSegmentView(StreamView):
             return web.HTTPNotFound()
         headers = {"Content-Type": "video/iso.segment"}
         return web.Response(
-            body=get_m4s(segment.segment, int(sequence)), headers=headers,
+            body=get_m4s(segment.segment, int(sequence)),
+            headers=headers,
         )
 
 
@@ -147,7 +148,8 @@ class HlsStreamOutput(StreamOutput):
     def container_options(self) -> Callable[[int], dict]:
         """Return Callable which takes a sequence number and returns container options."""
         return lambda sequence: {
-            "movflags": "frag_custom+empty_moov+default_base_moof+skip_sidx+frag_discont",
+            # Removed skip_sidx - see https://github.com/home-assistant/core/pull/39970
+            "movflags": "frag_custom+empty_moov+default_base_moof+frag_discont",
             "avoid_negative_ts": "make_non_negative",
             "fragment_index": str(sequence),
         }

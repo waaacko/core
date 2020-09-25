@@ -39,7 +39,7 @@ from homeassistant.const import (
     STATE_OPEN,
     STATE_OPENING,
 )
-from homeassistant.core import State
+from homeassistant.core import CoreState, State
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -103,7 +103,10 @@ class CoverGroup(GroupEntity, CoverEntity):
         )
 
     async def async_update_supported_features(
-        self, entity_id: str, new_state: Optional[State], update_state: bool = True,
+        self,
+        entity_id: str,
+        new_state: Optional[State],
+        update_state: bool = True,
     ) -> None:
         """Update dictionaries with supported features."""
         if not new_state:
@@ -159,6 +162,10 @@ class CoverGroup(GroupEntity, CoverEntity):
                 self.hass, self._entities, self._update_supported_features_event
             )
         )
+
+        if self.hass.state == CoreState.running:
+            await self.async_update()
+            return
         await super().async_added_to_hass()
 
     @property

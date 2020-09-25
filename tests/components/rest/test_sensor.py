@@ -12,7 +12,12 @@ import requests_mock
 from homeassistant import config as hass_config
 import homeassistant.components.rest.sensor as rest
 import homeassistant.components.sensor as sensor
-from homeassistant.const import DATA_MEGABYTES, SERVICE_RELOAD
+from homeassistant.const import (
+    CONTENT_TYPE_JSON,
+    CONTENT_TYPE_TEXT_PLAIN,
+    DATA_MEGABYTES,
+    SERVICE_RELOAD,
+)
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.config_validation import template
 from homeassistant.setup import async_setup_component, setup_component
@@ -135,7 +140,7 @@ class TestRestSensorSetup(unittest.TestCase):
                         "authentication": "basic",
                         "username": "my username",
                         "password": "my password",
-                        "headers": {"Accept": "application/json"},
+                        "headers": {"Accept": CONTENT_TYPE_JSON},
                     }
                 },
             )
@@ -164,7 +169,7 @@ class TestRestSensorSetup(unittest.TestCase):
                         "authentication": "basic",
                         "username": "my username",
                         "password": "my password",
-                        "headers": {"Accept": "application/json"},
+                        "headers": {"Accept": CONTENT_TYPE_JSON},
                     }
                 },
             )
@@ -212,7 +217,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 '{ "key": "' + self.initial_state + '" }',
-                CaseInsensitiveDict({"Content-Type": "application/json"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON}),
             ),
         )
         self.name = "foo"
@@ -276,7 +281,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 '{ "key": "updated_state" }',
-                CaseInsensitiveDict({"Content-Type": "application/json"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON}),
             ),
         )
         self.sensor.update()
@@ -288,7 +293,7 @@ class TestRestSensor(unittest.TestCase):
         self.rest.update = Mock(
             "rest.RestData.update",
             side_effect=self.update_side_effect(
-                "plain_state", CaseInsensitiveDict({"Content-Type": "application/json"})
+                "plain_state", CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON})
             ),
         )
         self.sensor = rest.RestSensor(
@@ -313,7 +318,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 '{ "key": "some_json_value" }',
-                CaseInsensitiveDict({"Content-Type": "application/json"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON}),
             ),
         )
         self.sensor = rest.RestSensor(
@@ -337,7 +342,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 '[{ "key": "another_value" }]',
-                CaseInsensitiveDict({"Content-Type": "application/json"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON}),
             ),
         )
         self.sensor = rest.RestSensor(
@@ -361,7 +366,7 @@ class TestRestSensor(unittest.TestCase):
         self.rest.update = Mock(
             "rest.RestData.update",
             side_effect=self.update_side_effect(
-                None, CaseInsensitiveDict({"Content-Type": "application/json"})
+                None, CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON})
             ),
         )
         self.sensor = rest.RestSensor(
@@ -387,7 +392,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 '["list", "of", "things"]',
-                CaseInsensitiveDict({"Content-Type": "application/json"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON}),
             ),
         )
         self.sensor = rest.RestSensor(
@@ -413,7 +418,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 "This is text rather than JSON data.",
-                CaseInsensitiveDict({"Content-Type": "text/plain"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_TEXT_PLAIN}),
             ),
         )
         self.sensor = rest.RestSensor(
@@ -439,7 +444,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 '{ "key": "json_state_updated_value" }',
-                CaseInsensitiveDict({"Content-Type": "application/json"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON}),
             ),
         )
         self.sensor = rest.RestSensor(
@@ -471,7 +476,7 @@ class TestRestSensor(unittest.TestCase):
             "rest.RestData.update",
             side_effect=self.update_side_effect(
                 '{ "toplevel": {"master_value": "master", "second_level": {"some_json_key": "some_json_value", "some_json_key2": "some_json_value2" } } }',
-                CaseInsensitiveDict({"Content-Type": "application/json"}),
+                CaseInsensitiveDict({"Content-Type": CONTENT_TYPE_JSON}),
             ),
         )
         self.sensor = rest.RestSensor(
@@ -631,7 +636,8 @@ class TestRestSensor(unittest.TestCase):
         value_template.hass = self.hass
 
         self.rest.update = Mock(
-            "rest.RestData.update", side_effect=self.update_side_effect(None, None),
+            "rest.RestData.update",
+            side_effect=self.update_side_effect(None, None),
         )
         self.sensor = rest.RestSensor(
             self.hass,
@@ -681,40 +687,42 @@ class TestRestData(unittest.TestCase):
         assert self.rest.data is None
 
 
-async def test_reload(hass):
+async def test_reload(hass, requests_mock):
     """Verify we can reload reset sensors."""
 
-    with requests_mock.Mocker() as mock_req:
-        mock_req.get("http://localhost", text="test data")
-        await async_setup_component(
-            hass,
-            "sensor",
-            {
-                "sensor": {
-                    "platform": "rest",
-                    "method": "GET",
-                    "name": "mockrest",
-                    "resource": "http://localhost",
-                }
-            },
-        )
-        await hass.async_block_till_done()
-        await hass.async_start()
-        await hass.async_block_till_done()
+    requests_mock.get("http://localhost", text="test data")
+
+    await async_setup_component(
+        hass,
+        "sensor",
+        {
+            "sensor": {
+                "platform": "rest",
+                "method": "GET",
+                "name": "mockrest",
+                "resource": "http://localhost",
+            }
+        },
+    )
+    await hass.async_block_till_done()
+    await hass.async_start()
+    await hass.async_block_till_done()
 
     assert len(hass.states.async_all()) == 1
 
     assert hass.states.get("sensor.mockrest")
 
     yaml_path = path.join(
-        _get_fixtures_base_path(), "fixtures", "rest/configuration.yaml",
+        _get_fixtures_base_path(),
+        "fixtures",
+        "rest/configuration.yaml",
     )
-    with patch.object(
-        hass_config, "YAML_CONFIG_FILE", yaml_path
-    ), requests_mock.Mocker() as mock_req:
-        mock_req.get("http://localhost", text="test data 2")
+    with patch.object(hass_config, "YAML_CONFIG_FILE", yaml_path):
         await hass.services.async_call(
-            "rest", SERVICE_RELOAD, {}, blocking=True,
+            "rest",
+            SERVICE_RELOAD,
+            {},
+            blocking=True,
         )
         await hass.async_block_till_done()
 
