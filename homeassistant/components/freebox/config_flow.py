@@ -1,7 +1,7 @@
 """Config flow to configure the Freebox integration."""
 import logging
 
-from aiofreepybox.exceptions import AuthorizationError, HttpRequestError
+from freebox_api.exceptions import AuthorizationError, HttpRequestError
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -92,7 +92,7 @@ class FreeboxFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         except HttpRequestError:
             _LOGGER.error("Error connecting to the Freebox router at %s", self._host)
-            errors["base"] = "connection_failed"
+            errors["base"] = "cannot_connect"
 
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception(

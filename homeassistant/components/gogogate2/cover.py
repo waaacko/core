@@ -1,5 +1,4 @@
 """Support for Gogogate2 garage Doors."""
-import logging
 from typing import Callable, List, Optional
 
 from gogogate2_api.common import (
@@ -34,10 +33,7 @@ from .common import (
     cover_unique_id,
     get_data_update_coordinator,
 )
-from .const import DEVICE_TYPE_GOGOGATE2, DEVICE_TYPE_ISMARTGATE, DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
-
+from .const import DEVICE_TYPE_GOGOGATE2, DEVICE_TYPE_ISMARTGATE, DOMAIN, MANUFACTURER
 
 COVER_SCHEMA = vol.Schema(
     {
@@ -133,15 +129,11 @@ class DeviceCover(CoordinatorEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs):
         """Open the door."""
-        await self.hass.async_add_executor_job(
-            self._api.open_door, self._get_door().door_id
-        )
+        await self._api.async_open_door(self._get_door().door_id)
 
     async def async_close_cover(self, **kwargs):
         """Close the door."""
-        await self.hass.async_add_executor_job(
-            self._api.close_door, self._get_door().door_id
-        )
+        await self._api.async_close_door(self._get_door().door_id)
 
     @property
     def state_attributes(self):
@@ -154,3 +146,15 @@ class DeviceCover(CoordinatorEntity, CoverEntity):
         door = get_door_by_id(self._door.door_id, self.coordinator.data)
         self._door = door or self._door
         return self._door
+
+    @property
+    def device_info(self):
+        """Device info for the controller."""
+        data = self.coordinator.data
+        return {
+            "identifiers": {(DOMAIN, self._config_entry.unique_id)},
+            "name": self._config_entry.title,
+            "manufacturer": MANUFACTURER,
+            "model": data.model,
+            "sw_version": data.firmwareversion,
+        }
