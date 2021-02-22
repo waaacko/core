@@ -24,6 +24,7 @@ import homeassistant.helpers.config_validation as cv
 _LOGGER = logging.getLogger(__name__)
 
 CONF_APS = "accesspoints"
+CONF_LOGIN = "force_login_v2"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -35,6 +36,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_DEVICES, default=[]): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_EXCLUDE, default=[]): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_APS, default=[]): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(CONF_LOGIN, default=False): cv.boolean,
     }
 )
 
@@ -50,8 +52,9 @@ def get_scanner(hass, config):
     devices = info[CONF_DEVICES]
     excluded_devices = info[CONF_EXCLUDE]
     accesspoints = info[CONF_APS]
+    force_login_v2 = info[CONF_LOGIN]
 
-    api = Netgear(password, host, username, port, ssl)
+    api = Netgear(password, host, username, port, ssl, None, force_login_v2)
     scanner = NetgearDeviceScanner(api, devices, excluded_devices, accesspoints)
 
     _LOGGER.debug("Logging in")
